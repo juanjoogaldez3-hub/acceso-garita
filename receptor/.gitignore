@@ -4,6 +4,10 @@
 # Dependencias de Node
 node_modules/
 
+# El ejecutable compilado (.exe) pesa ~64 MB: no va a GitHub.
+# Se genera cuando hace falta con:  npm run build:exe
+dist/
+
 # Logs
 *.log
 npm-debug.log*

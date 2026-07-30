@@ -8,7 +8,20 @@
  * igual en MODO DIAGNÓSTICO (solo hex + ACK de login), sin tocar Supabase.
  */
 
-require('dotenv').config();
+const path = require('path');
+
+/**
+ * ¿Dónde buscamos el archivo .env?
+ *   - Si esto es el .exe (versión "todo en uno"): al lado del ejecutable, así
+ *     el usuario solo pone el .env en la misma carpeta que el programa.
+ *   - Si se corre con Node normal: en la carpeta 'receptor/', sin importar
+ *     desde dónde se haya ejecutado el comando.
+ */
+const carpetaBase = process.pkg
+  ? path.dirname(process.execPath)
+  : path.join(__dirname, '..');
+
+require('dotenv').config({ path: path.join(carpetaBase, '.env') });
 
 const rawEnv = (process.env.SUPABASE_ENV || 'pruebas').toLowerCase().trim();
 

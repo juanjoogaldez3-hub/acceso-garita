@@ -27,6 +27,21 @@ function log(...args) {
 }
 
 /**
+ * Cierra el programa, pero si estamos en la versión .exe (doble clic en
+ * Windows) espera un ENTER primero. Si no, la ventana negra se cerraría de
+ * golpe y no alcanzarías a leer el mensaje de error.
+ */
+function salirConPausa(codigo) {
+  if (process.pkg && process.stdin.isTTY) {
+    console.error('\n   (presioná ENTER para cerrar esta ventana)');
+    process.stdin.resume();
+    process.stdin.once('data', () => process.exit(codigo));
+  } else {
+    process.exit(codigo);
+  }
+}
+
+/**
  * Procesa UNA trama ya desarmada para una conexión dada.
  * `sock.ctx` guarda el estado de esa conexión (imei, tracker, visita).
  */
@@ -211,7 +226,13 @@ function iniciarServidor() {
 
   server.on('error', (e) => {
     console.error(`\n💥 No se pudo abrir el servidor en el puerto ${config.tcpPort}: ${e.message}`);
-    process.exit(1);
+    if (e.code === 'EADDRINUSE') {
+      console.error(
+        `   Ese puerto ya está ocupado por otro programa.\n` +
+          `   Solución: cerrá la otra ventana del receptor, o cambiá TCP_PORT en el archivo .env`
+      );
+    }
+    salirConPausa(1);
   });
 
   server.listen(config.tcpPort, '0.0.0.0', () => {
@@ -235,4 +256,4 @@ function imprimirBanner() {
   console.log('════════════════════════════════════════════════════════════════\n');
 }
 
-module.exports = { iniciarServidor };
+module.exports = { iniciarServidor, salirConPausa };

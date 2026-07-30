@@ -27,6 +27,8 @@ Todo lo del receptor está listo y probado. Andá a
 **[`receptor/README.md`](receptor/README.md)** para levantarlo en 3 pasos y
 probarlo sin necesidad del aparato.
 
+- **Versión `.exe` para Windows** (doble clic, sin instalar nada):
+  [`docs/EJECUTABLE.md`](docs/EJECUTABLE.md)
 - Cómo alojarlo (¡Render Web Service no sirve para esto!):
   [`docs/HOSTING.md`](docs/HOSTING.md)
 - Tabla opcional para alarmas (remoción del imán):
@@ -40,6 +42,7 @@ probarlo sin necesidad del aparato.
 - [x] Inserción en Supabase (posiciones) + actualización del tracker.
 - [x] Selección de ambiente (producción / pruebas) por variable de entorno.
 - [x] Auto-test y simulador de tracker para probar sin hardware.
+- [x] Versión `.exe` de Windows (un archivo, sin instalar Node).
 - [ ] Afinar con el **aparato real**: código de alarma del imán, paquetes
       WiFi/LBS, y el mapa de batería (por eso el receptor imprime todo en hex).
 - [ ] Conectar el dashboard a datos reales vía Supabase Realtime.

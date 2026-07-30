@@ -6,6 +6,11 @@ protocolo Concox/GT06, **imprime en pantalla los bytes crudos** de cada paquete
 
 ---
 
+> 💡 **¿No querés usar la terminal?** Hay una versión **`.exe` para Windows**
+> (un solo archivo, doble clic, sin instalar nada). Mirá
+> [`../docs/EJECUTABLE.md`](../docs/EJECUTABLE.md) — pero leé primero la
+> advertencia sobre por qué sirve para *probar* y no para el uso final.
+
 ## Arranque rápido (3 pasos)
 
 ```bash
@@ -107,6 +112,17 @@ receptor/
     ├── supabase.js       # lectura/escritura en la base
     └── server.js         # servidor TCP y orquestación
 ```
+
+---
+
+## Generar el `.exe` de Windows
+
+```bash
+npm run build:exe     # queda en dist/receptor-trackers.exe
+```
+
+Detalles y advertencias en [`../docs/EJECUTABLE.md`](../docs/EJECUTABLE.md).
+El `.exe` no se sube a GitHub (pesa 64 MB), por eso `dist/` está ignorado.
 
 ---
 
