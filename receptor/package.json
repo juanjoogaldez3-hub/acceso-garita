@@ -1,0 +1,18 @@
+{
+  "name": "acceso-garita-receptor",
+  "version": "0.1.0",
+  "description": "Receptor TCP para trackers Concox/GT06 (Jimi IoT LL301). Escucha los aparatos, decodifica el protocolo, imprime los bytes crudos en hex y guarda posiciones en Supabase.",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5"
+  }
+}
