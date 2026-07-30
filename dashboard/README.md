@@ -11,19 +11,16 @@ vistazo.
 
 ## Probalo ahora mismo (sin configurar nada)
 
-Abrí `index.html` en tu navegador. Sin credenciales, arranca en **modo
-demostración**: inventa cuatro visitas que se mueven por el mapa, y a los 20
-segundos dispara una alarma de ejemplo.
+**Doble clic en `index.html`** y listo. No hace falta instalar ni levantar nada
+(probado: funciona abriéndolo directo desde el disco).
 
-Sirve para mostrarle el sistema a la junta directiva antes de tener trackers.
+Sin credenciales arranca en **modo demostración**: inventa cuatro visitas que se
+mueven por el mapa, y a los 20 segundos dispara una alarma de ejemplo. Sirve
+para mostrarle el sistema a la junta directiva antes de tener trackers.
 
-> Si lo abrís haciendo doble clic y algo no carga, mejor levantá un servidor
-> chiquito. Con Python (ya viene en Mac y Linux):
-> ```bash
-> cd dashboard
-> python3 -m http.server 8000
-> ```
-> y entrás a <http://localhost:8000>
+> Lo único que necesita internet son las imágenes del mapa (las calles) y las
+> tipografías. Sin internet el dashboard igual abre y los puntos se mueven,
+> solo que sobre un fondo vacío.
 
 ---
 
