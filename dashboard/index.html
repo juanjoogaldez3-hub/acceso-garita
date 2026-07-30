@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es-GT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Monitoreo en tiempo real de vehículos visitantes.">
+<meta name="robots" content="noindex, nofollow">
+<title>Acceso Garita · Monitoreo</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!-- Leaflet va guardado dentro del proyecto (carpeta vendor/) a propósito:
+     así el dashboard funciona aunque el internet de la garita esté lento o
+     algún CDN esté caído. -->
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+
+<link rel="stylesheet" href="css/estilos.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>">
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     PANTALLA DE ACCESO
+     ══════════════════════════════════════════════════════════════════ -->
+<div id="pantalla-login" class="login">
+  <div class="login__ruido" aria-hidden="true"></div>
+
+  <form class="login__caja" id="form-login" autocomplete="on">
+    <div class="login__marca">
+      <span class="login__senal" aria-hidden="true"></span>
+      <div>
+        <h1 class="login__titulo">Acceso Garita</h1>
+        <p class="login__sub">Monitoreo de visitas</p>
+      </div>
+    </div>
+
+    <div class="campo">
+      <label for="correo">Correo</label>
+      <input type="email" id="correo" name="email" required autocomplete="username"
+             placeholder="guardia@colonia.gt" spellcheck="false">
+    </div>
+
+    <div class="campo">
+      <label for="clave">Contraseña</label>
+      <input type="password" id="clave" name="password" required
+             autocomplete="current-password" placeholder="••••••••">
+    </div>
+
+    <button type="submit" class="boton boton--primario" id="btn-entrar">
+      <span class="boton__texto">Entrar</span>
+    </button>
+
+    <p class="login__error" id="login-error" role="alert" hidden></p>
+
+    <p class="login__pie">
+      Sistema privado de la colonia.<br>
+      Si no tenés acceso, pedilo a la administración.
+    </p>
+  </form>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     APLICACIÓN
+     ══════════════════════════════════════════════════════════════════ -->
+<div id="app" class="app" hidden>
+
+  <!-- ─────────── Barra superior ─────────── -->
+  <header class="barra">
+    <div class="barra__marca">
+      <span class="barra__senal" id="indicador-senal" aria-hidden="true"></span>
+      <div class="barra__titulos">
+        <span class="barra__nombre">Acceso Garita</span>
+        <span class="barra__estado" id="texto-conexion">Conectando…</span>
+      </div>
+    </div>
+
+    <div class="barra__metricas">
+      <div class="metrica">
+        <span class="metrica__valor" id="m-adentro">0</span>
+        <span class="metrica__etiqueta">Adentro</span>
+      </div>
+      <div class="metrica metrica--aviso">
+        <span class="metrica__valor" id="m-sinsenal">0</span>
+        <span class="metrica__etiqueta">Sin señal</span>
+      </div>
+      <div class="metrica metrica--alerta">
+        <span class="metrica__valor" id="m-alertas">0</span>
+        <span class="metrica__etiqueta">Alertas</span>
+      </div>
+    </div>
+
+    <div class="barra__derecha">
+      <time class="reloj" id="reloj" datetime="">--:--:--</time>
+      <button class="boton boton--fantasma" id="btn-salir" title="Cerrar sesión">Salir</button>
+    </div>
+  </header>
+
+  <!-- ─────────── Cuerpo ─────────── -->
+  <main class="cuerpo">
+
+    <div class="mapa-envoltura">
+      <div id="mapa" role="application" aria-label="Mapa de vehículos visitantes"></div>
+
+      <div class="mapa__controles">
+        <button class="chip" id="btn-centrar" title="Encuadrar todas las visitas">
+          Ver todas
+        </button>
+        <button class="chip" id="btn-rastros" aria-pressed="true" title="Mostrar u ocultar el recorrido">
+          Recorridos
+        </button>
+      </div>
+
+      <div class="banner-demo" id="banner-demo" hidden>
+        <strong>MODO DEMOSTRACIÓN</strong>
+        <span>Datos inventados. Todavía no hay trackers reales conectados.</span>
+      </div>
+    </div>
+
+    <!-- ─────────── Panel lateral ─────────── -->
+    <aside class="panel" aria-label="Visitas activas">
+      <div class="panel__cabeza">
+        <h2 class="panel__titulo">Visitas adentro</h2>
+        <input type="search" id="buscador" class="buscador"
+               placeholder="Buscar placa, nombre o casa…" aria-label="Buscar visita">
+      </div>
+
+      <ul class="lista" id="lista-visitas"></ul>
+
+      <div class="panel__vacio" id="panel-vacio">
+        <span class="panel__vacio-icono" aria-hidden="true">○</span>
+        <p>No hay visitas adentro en este momento.</p>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Avisos flotantes (alarmas de remoción, errores) -->
+  <div class="avisos" id="avisos" role="status" aria-live="polite"></div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="vendor/supabase.js"></script>
+
+<script src="js/config.js"></script>
+<script src="js/demo.js"></script>
+<script src="js/datos.js"></script>
+<script src="js/mapa.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

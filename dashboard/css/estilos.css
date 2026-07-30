@@ -1,0 +1,738 @@
+/* ============================================================================
+   ACCESO GARITA — Consola de monitoreo
+   ----------------------------------------------------------------------------
+   Idea de diseño: esto no es una página web bonita, es EQUIPO DE TRABAJO.
+   Está pensado como una consola de sala de control:
+     · Oscuro, porque los guardias trabajan de noche y el turno es largo.
+     · Ámbar (color de lámpara de sodio) como acento: se lee de lejos.
+     · Datos en letra monoespaciada: las placas se leen de un vistazo.
+     · Verde = todo bien · Ámbar = atención · Rojo = alarma.
+   ========================================================================== */
+
+/* ─────────────────────────────────────────────────────────────────────────
+   1. VARIABLES  (cambiá acá los colores y se actualiza todo el sistema)
+   ───────────────────────────────────────────────────────────────────── */
+:root {
+  /* Superficies, de más honda a más elevada */
+  --negro:        #0a0b0d;
+  --carbon:       #101216;
+  --carbon-alto:  #171a20;
+  --carbon-hover: #1e222a;
+  --borde:        #262b34;
+  --borde-suave:  #1c2027;
+
+  /* Texto */
+  --texto:        #e9e7e2;
+  --texto-medio:  #9aa0ab;
+  --texto-tenue:  #646b77;
+
+  /* Señales */
+  --ambar:        #ffa629;
+  --ambar-honda:  rgba(255, 166, 41, 0.14);
+  --verde:        #3ddc84;
+  --verde-honda:  rgba(61, 220, 132, 0.14);
+  --rojo:         #ff5252;
+  --rojo-honda:   rgba(255, 82, 82, 0.16);
+  --azul:         #5aa9ff;
+
+  /* Tipografía */
+  --display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --mono:    'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
+
+  /* Medidas */
+  --panel-ancho: 370px;
+  --barra-alto:  62px;
+  --radio:       4px;
+  --radio-g:     8px;
+
+  /* Sombras */
+  --sombra:   0 4px 20px rgba(0, 0, 0, 0.5);
+  --sombra-g: 0 16px 50px rgba(0, 0, 0, 0.65);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   2. BASE
+   ───────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--negro);
+  color: var(--texto);
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+h1, h2, h3 { margin: 0; font-family: var(--display); font-weight: 600; }
+p { margin: 0; }
+ul { margin: 0; padding: 0; list-style: none; }
+
+:focus-visible {
+  outline: 2px solid var(--ambar);
+  outline-offset: 2px;
+}
+
+/* Textura de grano muy sutil: le quita el "plano digital" a los fondos. */
+.login__ruido,
+.app::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.16;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   3. BOTONES Y CAMPOS
+   ───────────────────────────────────────────────────────────────────── */
+.boton {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  border-radius: var(--radio);
+  padding: 11px 20px;
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease,
+              color .15s ease, transform .1s ease;
+}
+.boton:active { transform: translateY(1px); }
+
+.boton--primario {
+  width: 100%;
+  background: var(--ambar);
+  color: #17130a;
+}
+.boton--primario:hover:not(:disabled) { background: #ffb84d; }
+.boton--primario:disabled { opacity: .55; cursor: progress; }
+
+.boton--fantasma {
+  background: transparent;
+  border-color: var(--borde);
+  color: var(--texto-medio);
+  font-size: 13px;
+  padding: 7px 14px;
+}
+.boton--fantasma:hover { border-color: var(--texto-tenue); color: var(--texto); }
+
+.campo { display: flex; flex-direction: column; gap: 6px; }
+
+.campo label {
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--texto-tenue);
+}
+
+.campo input {
+  font-family: var(--mono);
+  font-size: 14px;
+  background: var(--negro);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  color: var(--texto);
+  padding: 11px 13px;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.campo input::placeholder { color: #4c525c; }
+.campo input:focus {
+  outline: none;
+  border-color: var(--ambar);
+  box-shadow: 0 0 0 3px var(--ambar-honda);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   4. PANTALLA DE ACCESO
+   ───────────────────────────────────────────────────────────────────── */
+.login {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 0%, rgba(255,166,41,.09), transparent 70%),
+    radial-gradient(ellipse 90% 60% at 50% 100%, rgba(90,169,255,.05), transparent 70%),
+    var(--negro);
+}
+
+.login__caja {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 370px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 34px 30px 28px;
+  background: linear-gradient(180deg, var(--carbon-alto), var(--carbon));
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-g);
+  box-shadow: var(--sombra-g);
+  animation: subir .5s cubic-bezier(.2,.7,.3,1) both;
+}
+
+.login__marca { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; }
+
+.login__titulo {
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+}
+
+.login__sub {
+  font-family: var(--display);
+  font-size: 14px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ambar);
+}
+
+/* Punto con "ping de radar" — la firma visual del sistema */
+.login__senal, .barra__senal {
+  position: relative;
+  flex: none;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: var(--verde);
+  box-shadow: 0 0 12px var(--verde);
+}
+.login__senal::after, .barra__senal::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  color: var(--verde);
+  animation: ping 2.2s cubic-bezier(0,0,.2,1) infinite;
+}
+
+.login__error {
+  font-size: 13px;
+  color: var(--rojo);
+  background: var(--rojo-honda);
+  border: 1px solid rgba(255,82,82,.3);
+  border-radius: var(--radio);
+  padding: 9px 12px;
+  animation: temblor .35s ease;
+}
+
+.login__pie {
+  font-size: 11.5px;
+  line-height: 1.65;
+  color: var(--texto-tenue);
+  text-align: center;
+  border-top: 1px solid var(--borde-suave);
+  padding-top: 16px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   5. ESTRUCTURA DE LA APLICACIÓN
+   ───────────────────────────────────────────────────────────────────── */
+.app {
+  height: 100%;
+  display: grid;
+  grid-template-rows: var(--barra-alto) 1fr;
+}
+.app[hidden] { display: none; }
+
+.cuerpo {
+  display: grid;
+  grid-template-columns: 1fr var(--panel-ancho);
+  min-height: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   6. BARRA SUPERIOR
+   ───────────────────────────────────────────────────────────────────── */
+.barra {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 18px;
+  background: var(--carbon);
+  border-bottom: 1px solid var(--borde);
+}
+
+.barra__marca { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.barra__titulos { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+
+.barra__nombre {
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.barra__estado {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--texto-tenue);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Estados del indicador de conexión */
+.barra__senal { background: var(--texto-tenue); box-shadow: none; }
+.barra__senal::after { display: none; }
+.barra__senal[data-estado="vivo"] {
+  background: var(--verde);
+  box-shadow: 0 0 12px var(--verde);
+}
+.barra__senal[data-estado="vivo"]::after { display: block; color: var(--verde); }
+.barra__senal[data-estado="demo"] {
+  background: var(--ambar);
+  box-shadow: 0 0 12px var(--ambar);
+}
+.barra__senal[data-estado="demo"]::after { display: block; color: var(--ambar); }
+.barra__senal[data-estado="caido"] { background: var(--rojo); box-shadow: 0 0 12px var(--rojo); }
+
+.barra__metricas { display: flex; gap: 8px; }
+
+.metrica {
+  min-width: 74px;
+  text-align: center;
+  padding: 6px 12px;
+  background: var(--carbon-alto);
+  border: 1px solid var(--borde-suave);
+  border-radius: var(--radio);
+  line-height: 1.15;
+}
+.metrica__valor {
+  display: block;
+  font-size: 21px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.metrica__etiqueta {
+  display: block;
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--texto-tenue);
+}
+.metrica--aviso.activa  { border-color: rgba(255,166,41,.45); background: var(--ambar-honda); }
+.metrica--aviso.activa  .metrica__valor { color: var(--ambar); }
+.metrica--alerta.activa { border-color: rgba(255,82,82,.5); background: var(--rojo-honda); }
+.metrica--alerta.activa .metrica__valor { color: var(--rojo); }
+
+.barra__derecha { display: flex; align-items: center; gap: 14px; }
+
+.reloj {
+  font-size: 16px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--texto-medio);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   7. MAPA
+   ───────────────────────────────────────────────────────────────────── */
+.mapa-envoltura { position: relative; min-width: 0; }
+#mapa { position: absolute; inset: 0; background: #0d0f12; }
+
+.mapa__controles {
+  position: absolute;
+  z-index: 500;
+  left: 12px; bottom: 12px;
+  display: flex;
+  gap: 7px;
+}
+
+.chip {
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--texto-medio);
+  background: rgba(16, 18, 22, 0.93);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 7px 13px;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.chip:hover { color: var(--texto); border-color: var(--texto-tenue); }
+.chip[aria-pressed="true"] {
+  color: var(--ambar);
+  border-color: rgba(255,166,41,.45);
+  background: rgba(255,166,41,.1);
+}
+
+.banner-demo {
+  position: absolute;
+  z-index: 500;
+  top: 12px; left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--ambar);
+  background: rgba(30, 22, 8, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,166,41,.4);
+  border-radius: var(--radio);
+  padding: 8px 15px;
+  box-shadow: var(--sombra);
+}
+.banner-demo strong {
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+}
+.banner-demo span { color: var(--texto-medio); }
+.banner-demo[hidden] { display: none; }
+
+/* --- Marcadores del mapa (se construyen en mapa.js) --- */
+.pin { position: relative; width: 0; height: 0; }
+
+.pin__punto {
+  position: absolute;
+  left: -7px; top: -7px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--verde);
+  border: 2px solid #0a0b0d;
+  box-shadow: 0 0 10px rgba(61,220,132,.85);
+}
+.pin__aro {
+  position: absolute;
+  left: -7px; top: -7px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--verde);
+  animation: ping 2.4s cubic-bezier(0,0,.2,1) infinite;
+}
+.pin__placa {
+  position: absolute;
+  left: 13px; top: -10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: var(--texto);
+  background: rgba(10, 11, 13, 0.92);
+  border: 1px solid var(--borde);
+  border-radius: 3px;
+  padding: 2px 6px;
+}
+
+/* Variantes por estado del marcador */
+.pin--sinsenal .pin__punto { background: var(--texto-tenue); box-shadow: none; }
+.pin--sinsenal .pin__aro   { display: none; }
+.pin--sinsenal .pin__placa { color: var(--texto-tenue); }
+
+.pin--alerta .pin__punto {
+  background: var(--rojo);
+  box-shadow: 0 0 14px rgba(255,82,82,.95);
+}
+.pin--alerta .pin__aro { border-color: var(--rojo); animation-duration: 1s; }
+.pin--alerta .pin__placa { color: var(--rojo); border-color: rgba(255,82,82,.5); }
+
+.pin--activo .pin__punto { background: var(--ambar); box-shadow: 0 0 16px var(--ambar); }
+.pin--activo .pin__aro   { border-color: var(--ambar); }
+.pin--activo .pin__placa {
+  color: #17130a;
+  background: var(--ambar);
+  border-color: var(--ambar);
+  font-weight: 700;
+}
+
+/* --- Ajustes de Leaflet para que combine con el tema oscuro --- */
+.leaflet-container { background: #0d0f12; font-family: var(--mono); }
+.leaflet-bar a {
+  background: var(--carbon-alto);
+  color: var(--texto-medio);
+  border-bottom-color: var(--borde);
+}
+.leaflet-bar a:hover { background: var(--carbon-hover); color: var(--texto); }
+.leaflet-control-attribution {
+  background: rgba(10,11,13,.82) !important;
+  color: var(--texto-tenue) !important;
+  font-size: 10px !important;
+}
+.leaflet-control-attribution a { color: var(--texto-medio) !important; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   8. PANEL LATERAL
+   ───────────────────────────────────────────────────────────────────── */
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--carbon);
+  border-left: 1px solid var(--borde);
+}
+
+.panel__cabeza {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding: 15px 16px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.panel__titulo {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--texto-medio);
+}
+
+.buscador {
+  font-family: var(--mono);
+  font-size: 13px;
+  background: var(--negro);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  color: var(--texto);
+  padding: 9px 12px;
+}
+.buscador::placeholder { color: #4c525c; }
+.buscador:focus {
+  outline: none;
+  border-color: var(--ambar);
+  box-shadow: 0 0 0 3px var(--ambar-honda);
+}
+
+.lista { flex: 1; overflow-y: auto; padding: 9px; display: flex; flex-direction: column; gap: 7px; }
+.lista::-webkit-scrollbar { width: 9px; }
+.lista::-webkit-scrollbar-track { background: transparent; }
+.lista::-webkit-scrollbar-thumb { background: var(--borde); border-radius: 5px; }
+.lista::-webkit-scrollbar-thumb:hover { background: var(--texto-tenue); }
+
+/* --- Tarjeta de visita --- */
+.tarjeta {
+  position: relative;
+  padding: 11px 13px 11px 15px;
+  background: var(--carbon-alto);
+  border: 1px solid var(--borde-suave);
+  border-radius: var(--radio);
+  cursor: pointer;
+  overflow: hidden;
+  transition: background-color .14s ease, border-color .14s ease;
+  animation: entrar .28s ease both;
+}
+.tarjeta::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--verde);
+}
+.tarjeta:hover { background: var(--carbon-hover); border-color: var(--borde); }
+.tarjeta[aria-selected="true"] {
+  border-color: var(--ambar);
+  background: rgba(255,166,41,.07);
+}
+.tarjeta[aria-selected="true"]::before { background: var(--ambar); }
+.tarjeta--sinsenal::before { background: var(--texto-tenue); }
+.tarjeta--alerta { border-color: rgba(255,82,82,.45); background: rgba(255,82,82,.06); }
+.tarjeta--alerta::before { background: var(--rojo); }
+
+.tarjeta__fila1 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tarjeta__placa {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+}
+
+.tarjeta__tiempo {
+  flex: none;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--texto-tenue);
+}
+
+.tarjeta__visitante {
+  font-size: 12.5px;
+  color: var(--texto-medio);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tarjeta__casa {
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ambar);
+}
+
+.tarjeta__pie {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid var(--borde-suave);
+  font-size: 11px;
+  color: var(--texto-tenue);
+}
+.dato { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+.dato--alerta { color: var(--rojo); font-weight: 600; }
+.dato--aviso  { color: var(--ambar); }
+
+.insignia {
+  margin-left: auto;
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 3px;
+}
+.insignia--movimiento { color: var(--verde); background: var(--verde-honda); }
+.insignia--detenido   { color: var(--texto-medio); background: rgba(255,255,255,.05); }
+.insignia--sinsenal   { color: var(--texto-tenue); background: rgba(255,255,255,.04); }
+.insignia--alerta     { color: var(--rojo); background: var(--rojo-honda); }
+
+.panel__vacio {
+  flex: 1;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 30px;
+  text-align: center;
+  color: var(--texto-tenue);
+  font-size: 13px;
+}
+.panel__vacio.visible { display: flex; }
+.panel__vacio-icono { font-size: 30px; opacity: .35; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   9. AVISOS FLOTANTES
+   ───────────────────────────────────────────────────────────────────── */
+.avisos {
+  position: fixed;
+  z-index: 300;
+  right: 18px; bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  max-width: 360px;
+}
+
+.aviso {
+  display: flex;
+  gap: 11px;
+  padding: 12px 15px;
+  background: var(--carbon-alto);
+  border: 1px solid var(--borde);
+  border-left: 3px solid var(--texto-tenue);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-g);
+  animation: deslizar .3s cubic-bezier(.2,.7,.3,1) both;
+}
+.aviso--alerta { border-left-color: var(--rojo); }
+.aviso--error  { border-left-color: var(--ambar); }
+.aviso__cuerpo { min-width: 0; }
+.aviso__titulo {
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  margin-bottom: 1px;
+}
+.aviso--alerta .aviso__titulo { color: var(--rojo); }
+.aviso--error  .aviso__titulo { color: var(--ambar); }
+.aviso__texto { font-size: 12px; color: var(--texto-medio); }
+.aviso.saliendo { animation: desvanecer .28s ease forwards; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   10. ANIMACIONES
+   ───────────────────────────────────────────────────────────────────── */
+@keyframes ping {
+  0%        { transform: scale(1);   opacity: .85; }
+  70%, 100% { transform: scale(2.9); opacity: 0; }
+}
+@keyframes subir {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes entrar {
+  from { opacity: 0; transform: translateX(10px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes deslizar {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes desvanecer {
+  to { opacity: 0; transform: translateX(24px); }
+}
+@keyframes temblor {
+  10%, 90% { transform: translateX(-2px); }
+  30%, 70% { transform: translateX(3px); }
+  50%      { transform: translateX(-2px); }
+}
+
+/* Respetar a quien pidió menos movimiento en su sistema */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   11. PANTALLAS CHICAS  (tablet / celular del supervisor)
+   ───────────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .cuerpo {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 46vh;
+  }
+  .panel { border-left: none; border-top: 1px solid var(--borde); }
+  .barra__metricas { gap: 5px; }
+  .metrica { min-width: 58px; padding: 5px 8px; }
+  .metrica__valor { font-size: 18px; }
+  .reloj { display: none; }
+}
+
+@media (max-width: 560px) {
+  .barra__nombre { font-size: 16px; }
+  .metrica__etiqueta { font-size: 9.5px; letter-spacing: .08em; }
+  .banner-demo { white-space: normal; max-width: 92vw; }
+}
