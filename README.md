@@ -29,6 +29,8 @@ junta ven un dashboard con el puntito de cada visita.
 - **Levantar el receptor:** [`receptor/README.md`](receptor/README.md), 3 pasos,
   se prueba sin necesidad del aparato.
 
+- **Publicar el dashboard en GitHub Pages** (para entrar con un link, sin
+  descargar nada): [`docs/PUBLICAR.md`](docs/PUBLICAR.md)
 - **Configurar el dashboard con datos reales:**
   [`dashboard/README.md`](dashboard/README.md)
 - **Versión `.exe` para Windows** (doble clic, sin instalar nada):
