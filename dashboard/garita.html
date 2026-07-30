@@ -3,21 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Monitoreo en tiempo real de vehículos visitantes.">
+<meta name="description" content="Registro de ingreso y salida de visitas.">
 <meta name="robots" content="noindex, nofollow">
-<title>Acceso Garita · Monitoreo</title>
+<title>Garita · Registro de visitas</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
-<!-- Leaflet va guardado dentro del proyecto (carpeta vendor/) a propósito:
-     así el dashboard funciona aunque el internet de la garita esté lento o
-     algún CDN esté caído. -->
-<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
-
 <link rel="stylesheet" href="css/estilos.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚧</text></svg>">
 </head>
 <body>
 
@@ -31,8 +26,8 @@
     <div class="login__marca">
       <span class="login__senal" aria-hidden="true"></span>
       <div>
-        <h1 class="login__titulo">Acceso Garita</h1>
-        <p class="login__sub">Monitoreo de visitas</p>
+        <h1 class="login__titulo">Garita</h1>
+        <p class="login__sub">Registro de visitas</p>
       </div>
     </div>
 
@@ -67,12 +62,11 @@
      ══════════════════════════════════════════════════════════════════ -->
 <div id="app" class="app" hidden>
 
-  <!-- ─────────── Barra superior ─────────── -->
   <header class="barra">
     <div class="barra__marca">
       <span class="barra__senal" id="indicador-senal" aria-hidden="true"></span>
       <div class="barra__titulos">
-        <span class="barra__nombre">Acceso Garita</span>
+        <span class="barra__nombre">Garita</span>
         <span class="barra__estado" id="texto-conexion">Conectando…</span>
       </div>
     </div>
@@ -82,74 +76,94 @@
         <span class="metrica__valor" id="m-adentro">0</span>
         <span class="metrica__etiqueta">Adentro</span>
       </div>
-      <div class="metrica metrica--aviso">
-        <span class="metrica__valor" id="m-sinsenal">0</span>
-        <span class="metrica__etiqueta">Sin señal</span>
-      </div>
-      <div class="metrica metrica--alerta">
-        <span class="metrica__valor" id="m-alertas">0</span>
-        <span class="metrica__etiqueta">Alertas</span>
+      <div class="metrica">
+        <span class="metrica__valor" id="m-libres">0</span>
+        <span class="metrica__etiqueta">Trackers libres</span>
       </div>
     </div>
 
     <div class="barra__derecha">
-      <a class="boton boton--fantasma" href="garita.html">Garita</a>
+      <a class="boton boton--fantasma" href="index.html">Ver mapa</a>
       <time class="reloj" id="reloj" datetime="">--:--:--</time>
       <button class="boton boton--fantasma" id="btn-salir" title="Cerrar sesión">Salir</button>
     </div>
   </header>
 
-  <!-- ─────────── Cuerpo ─────────── -->
-  <main class="cuerpo">
+  <main class="garita">
 
-    <div class="mapa-envoltura">
-      <div id="mapa" role="application" aria-label="Mapa de vehículos visitantes"></div>
-
-      <div class="mapa__controles">
-        <button class="chip" id="btn-centrar" title="Encuadrar todas las visitas">
-          Ver todas
-        </button>
-        <button class="chip" id="btn-rastros" aria-pressed="true" title="Mostrar u ocultar el recorrido">
-          Recorridos
-        </button>
+    <!-- ─────────── Registrar ingreso ─────────── -->
+    <section class="tablero" aria-labelledby="t-ingreso">
+      <div class="tablero__cabeza">
+        <h2 class="tablero__titulo" id="t-ingreso">Registrar ingreso</h2>
       </div>
 
-      <div class="banner-demo" id="banner-demo" hidden>
-        <strong>MODO DEMOSTRACIÓN</strong>
-        <span>Datos inventados. Todavía no hay trackers reales conectados.</span>
-      </div>
-    </div>
+      <!-- novalidate: preferimos nuestros propios mensajes en español, en vez
+           del aviso del navegador (que puede salir en inglés). El atributo
+           'required' se queda por accesibilidad. -->
+      <form class="formulario" id="form-ingreso" autocomplete="off" novalidate>
 
-    <!-- ─────────── Panel lateral ─────────── -->
-    <aside class="panel" aria-label="Visitas activas">
-      <div class="panel__cabeza">
-        <h2 class="panel__titulo">Visitas adentro</h2>
+        <div class="campo">
+          <label for="placa">Placa del vehículo <span class="obligatorio">*</span></label>
+          <input type="text" id="placa" class="entrada-grande" required
+                 placeholder="P123ABC" maxlength="15" spellcheck="false"
+                 autocapitalize="characters">
+        </div>
+
+        <div class="campo">
+          <label for="visitante">Nombre del visitante</label>
+          <input type="text" id="visitante" placeholder="Ana Morales" maxlength="80">
+        </div>
+
+        <div class="campo">
+          <label for="casa">Casa destino</label>
+          <input type="text" id="casa" placeholder="Casa 14" maxlength="40">
+        </div>
+
+        <div class="campo">
+          <label for="tracker">
+            Tracker que le colocás
+            <button type="button" class="mini" id="btn-refrescar" title="Actualizar la lista">↻</button>
+          </label>
+          <select id="tracker" class="entrada-grande">
+            <option value="">— Sin tracker —</option>
+          </select>
+          <p class="ayuda" id="ayuda-tracker">Elegí uno con buena batería.</p>
+        </div>
+
+        <button type="submit" class="boton boton--primario boton--alto" id="btn-ingresar">
+          <span class="boton__texto">Registrar ingreso</span>
+        </button>
+
+        <p class="mensaje" id="msg-ingreso" role="alert" hidden></p>
+      </form>
+    </section>
+
+    <!-- ─────────── Adentro ahora ─────────── -->
+    <section class="tablero" aria-labelledby="t-adentro">
+      <div class="tablero__cabeza">
+        <h2 class="tablero__titulo" id="t-adentro">Adentro ahora</h2>
         <input type="search" id="buscador" class="buscador"
                placeholder="Buscar placa, nombre o casa…" aria-label="Buscar visita">
       </div>
 
-      <ul class="lista" id="lista-visitas"></ul>
+      <ul class="lista lista--garita" id="lista-adentro"></ul>
 
       <div class="panel__vacio" id="panel-vacio">
         <span class="panel__vacio-icono" aria-hidden="true">○</span>
-        <p>No hay visitas adentro en este momento.</p>
+        <p>No hay visitas adentro.<br>Registrá un ingreso para empezar.</p>
       </div>
-    </aside>
+    </section>
   </main>
 
-  <!-- Avisos flotantes (alarmas de remoción, errores) -->
   <div class="avisos" id="avisos" role="status" aria-live="polite"></div>
 </div>
 
 
-<!-- ══════════════════════════════════════════════════════════════════════ -->
-<script src="vendor/leaflet/leaflet.js"></script>
+<!-- Esta pantalla no lleva mapa, así que no carga Leaflet: abre más rápido. -->
 <script src="vendor/supabase.js"></script>
 
 <script src="js/config.js"></script>
-<script src="js/demo.js"></script>
 <script src="js/datos.js"></script>
-<script src="js/mapa.js"></script>
-<script src="js/app.js"></script>
+<script src="js/garita.js"></script>
 </body>
 </html>

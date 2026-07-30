@@ -26,14 +26,16 @@ para mostrarle el sistema a la junta directiva antes de tener trackers.
 
 ## Ponerlo con datos reales (4 pasos)
 
-### 1. Correr el SQL de seguridad
+### 1. Correr los dos archivos SQL
 
-Andá al **SQL Editor** de Supabase y corré
-[`../sql/dashboard-seguridad.sql`](../sql/dashboard-seguridad.sql).
-**En los dos ambientes** (producción y pruebas).
+Andá al **SQL Editor** de Supabase y corré, **en este orden** y **en los dos
+ambientes** (producción y pruebas):
 
-Eso hace tres cosas: protege los datos (nadie lee sin iniciar sesión), crea
-índices para que cargue rápido, y activa el tiempo real.
+1. [`../sql/dashboard-seguridad.sql`](../sql/dashboard-seguridad.sql) — protege
+   los datos (nadie lee sin iniciar sesión), crea índices y activa el tiempo real.
+2. [`../sql/garita-permisos.sql`](../sql/garita-permisos.sql) — le da permiso a
+   la garita para registrar ingresos y salidas, e impide que un mismo tracker
+   quede puesto en dos carros a la vez.
 
 ### 2. Crear los usuarios de los guardias
 
@@ -87,18 +89,53 @@ buscar por placa/nombre/casa, "Ver todas" para encuadrar el mapa, y
 
 ---
 
+---
+
+## Las dos pantallas
+
+| Archivo | Para quién | Para qué |
+|---|---|---|
+| `index.html` | Guardias y junta | **Mapa**: ver dónde está cada visita |
+| `garita.html` | Guardia de la entrada | **Registro**: dar de alta el ingreso y marcar la salida |
+
+Se pasa de una a otra con los botones **"Garita"** y **"Ver mapa"** de la barra
+de arriba. Usan el mismo usuario y contraseña.
+
+### Cómo se usa la pantalla de la garita
+
+**Cuando entra un carro:**
+1. Escribí la **placa** (se pone en mayúsculas sola)
+2. Nombre del visitante y casa destino
+3. Elegí **qué tracker** le vas a poner (la lista muestra la batería de cada uno)
+4. **Registrar ingreso** → aparece en el mapa al toque
+
+**Cuando sale:**
+1. Buscalo en la lista de la derecha
+2. Botón **"Salida"** → pide confirmar (para no marcarlo sin querer)
+3. Retirá el tracker del carro: queda libre para la próxima visita
+
+> Si registrás una visita **sin tracker**, la pantalla te avisa: esa visita no
+> se va a ver en el mapa, porque no hay nada que reporte su posición.
+
+> La base impide que un mismo tracker quede en dos carros a la vez. Si dos
+> guardias eligen el mismo al mismo tiempo, el segundo recibe un aviso claro.
+
+---
+
 ## Archivos
 
 ```
 dashboard/
-├── index.html          la página
-├── css/estilos.css     todo el diseño
+├── index.html          pantalla del mapa
+├── garita.html         pantalla de registro de ingresos/salidas
+├── css/estilos.css     todo el diseño (de las dos pantallas)
 ├── js/
 │   ├── config.js       ← EL ÚNICO QUE EDITÁS
 │   ├── demo.js         datos inventados para la demostración
-│   ├── datos.js        sesión, consultas a Supabase y tiempo real
+│   ├── datos.js        sesión, consultas y escritura en Supabase
 │   ├── mapa.js         los puntitos y recorridos sobre Leaflet
-│   └── app.js          une todo y dibuja el panel
+│   ├── app.js          arma la pantalla del mapa
+│   └── garita.js       arma la pantalla de la garita
 └── vendor/             Leaflet y Supabase guardados acá a propósito
 ```
 

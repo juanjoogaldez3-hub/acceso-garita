@@ -182,6 +182,142 @@ const Datos = (() => {
   }
 
   /* ─────────────────────────────────────────────────────────────────────
+     GARITA — registrar ingresos y salidas
+     ───────────────────────────────────────────────────────────────────── */
+
+  /** Correo de quien tiene la sesión abierta (queda como guardia responsable). */
+  async function correoUsuario() {
+    if (!sb) return null;
+    const { data } = await sb.auth.getUser();
+    return data?.user?.email || null;
+  }
+
+  /**
+   * Trackers que se le pueden poner a un carro ahora mismo.
+   * "Disponible" lo calculamos de la verdad (que no esté en una visita
+   * adentro), no del campo 'estado', que se puede desincronizar.
+   */
+  async function cargarTrackersDisponibles() {
+    if (!sb) return [];
+
+    const { data: trackers, error } = await sb
+      .from('trackers')
+      .select('id, imei, etiqueta, estado, bateria, ultima_conexion')
+      .order('etiqueta', { ascending: true });
+    if (error) throw new Error('No se pudieron leer los trackers: ' + error.message);
+
+    const { data: ocupadas, error: e2 } = await sb
+      .from('visitas')
+      .select('tracker_id')
+      .eq('estado', 'adentro')
+      .not('tracker_id', 'is', null);
+    if (e2) throw new Error('No se pudieron leer las visitas: ' + e2.message);
+
+    const ocupados = new Set((ocupadas || []).map((v) => v.tracker_id));
+    return (trackers || []).filter((t) => !ocupados.has(t.id));
+  }
+
+  /** Lista simple de las visitas que están adentro (para la garita). */
+  async function cargarVisitasAdentro() {
+    if (!sb) return [];
+    const { data, error } = await sb
+      .from('visitas')
+      .select('id, placa, visitante, casa_destino, tracker_id, hora_ingreso, guardia_ingreso')
+      .eq('estado', 'adentro')
+      .order('hora_ingreso', { ascending: false });
+    if (error) throw new Error('No se pudieron leer las visitas: ' + error.message);
+
+    const ids = [...new Set((data || []).map((v) => v.tracker_id).filter(Boolean))];
+    let porTracker = new Map();
+    if (ids.length) {
+      const { data: trackers } = await sb
+        .from('trackers')
+        .select('id, etiqueta, bateria, ultima_conexion')
+        .in('id', ids);
+      porTracker = new Map((trackers || []).map((t) => [t.id, t]));
+    }
+
+    return (data || []).map((v) => ({
+      ...v,
+      tracker: porTracker.get(v.tracker_id) || null,
+    }));
+  }
+
+  /**
+   * Da de alta una visita: el carro entró a la colonia.
+   * También marca el tracker como 'asignado'.
+   */
+  async function registrarIngreso({ placa, visitante, casaDestino, trackerId }) {
+    if (!sb) throw new Error('Supabase no está configurado.');
+
+    const guardia = await correoUsuario();
+
+    const { data, error } = await sb
+      .from('visitas')
+      .insert({
+        placa: (placa || '').trim().toUpperCase(),
+        visitante: (visitante || '').trim() || null,
+        casa_destino: (casaDestino || '').trim() || null,
+        tracker_id: trackerId || null,
+        hora_ingreso: new Date().toISOString(),
+        estado: 'adentro',
+        guardia_ingreso: guardia,
+      })
+      .select()
+      .single();
+
+    if (error) throw new Error(traducirErrorEscritura(error));
+
+    if (trackerId) {
+      await sb.from('trackers').update({ estado: 'asignado' }).eq('id', trackerId);
+    }
+    return data;
+  }
+
+  /**
+   * Cierra una visita: el carro salió y se recuperó el tracker.
+   */
+  async function registrarSalida(visitaId, trackerId) {
+    if (!sb) throw new Error('Supabase no está configurado.');
+
+    const guardia = await correoUsuario();
+
+    const { error } = await sb
+      .from('visitas')
+      .update({
+        estado: 'afuera',
+        hora_salida: new Date().toISOString(),
+        guardia_salida: guardia,
+      })
+      .eq('id', visitaId);
+
+    if (error) throw new Error(traducirErrorEscritura(error));
+
+    if (trackerId) {
+      await sb.from('trackers').update({ estado: 'disponible' }).eq('id', trackerId);
+    }
+  }
+
+  /** Convierte los errores de la base en algo que se entienda. */
+  function traducirErrorEscritura(error) {
+    const codigo = error.code || '';
+    const msg = (error.message || '').toLowerCase();
+
+    if (codigo === '23505' || msg.includes('duplicate key')) {
+      return 'Ese tracker ya está puesto en otro carro que está adentro. ' +
+             'Actualizá la lista y elegí otro.';
+    }
+    if (codigo === '42501' || msg.includes('row-level security')) {
+      return 'No tenés permiso para escribir. ¿Corriste el archivo ' +
+             'sql/garita-permisos.sql en este ambiente?';
+    }
+    if (msg.includes('failed to fetch')) {
+      return 'No hay conexión con el servidor. Revisá tu internet.';
+    }
+    return error.message || 'No se pudo guardar.';
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
      TIEMPO REAL
      ───────────────────────────────────────────────────────────────────── */
 
@@ -220,8 +356,10 @@ const Datos = (() => {
   /* ───────────────────────────────────────────────────────────────────── */
   return {
     iniciar, disponible,
-    sesionActual, iniciarSesion, cerrarSesion, alCambiarSesion,
+    sesionActual, iniciarSesion, cerrarSesion, alCambiarSesion, correoUsuario,
     cargarVisitasActivas, cargarAlertasRecientes,
+    cargarTrackersDisponibles, cargarVisitasAdentro,
+    registrarIngreso, registrarSalida,
     suscribir, desuscribir,
   };
 })();

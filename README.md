@@ -38,10 +38,13 @@ junta ven un dashboard con el puntito de cada visita.
 
 ### Scripts SQL (correr **siempre en los dos ambientes**)
 
-| Archivo | Para qué |
-|---|---|
-| [`sql/dashboard-seguridad.sql`](sql/dashboard-seguridad.sql) | Protege los datos (login obligatorio), índices y tiempo real |
-| [`sql/eventos.sql`](sql/eventos.sql) | Tabla opcional para alarmas de remoción del imán |
+Correlos **en este orden**:
+
+| # | Archivo | Para qué |
+|---|---|---|
+| 1 | [`sql/dashboard-seguridad.sql`](sql/dashboard-seguridad.sql) | Protege los datos (login obligatorio), índices y tiempo real |
+| 2 | [`sql/garita-permisos.sql`](sql/garita-permisos.sql) | Permite registrar ingresos y salidas; evita que un tracker quede en dos carros |
+| 3 | [`sql/eventos.sql`](sql/eventos.sql) | Tabla opcional para alarmas de remoción del imán |
 
 ## Estado actual
 
@@ -53,18 +56,18 @@ junta ven un dashboard con el puntito de cada visita.
 - [x] Auto-test y simulador de tracker para probar sin hardware.
 - [x] Versión `.exe` de Windows (un archivo, sin instalar Node).
 - [x] Dashboard con mapa, login, tiempo real, alertas y modo demostración.
+- [x] Pantalla de la garita para registrar ingresos y salidas.
 - [ ] Afinar con el **aparato real**: código de alarma del imán, paquetes
       WiFi/LBS, y el mapa de batería (por eso el receptor imprime todo en hex).
-- [ ] **Pantalla de la garita** para registrar el ingreso y la salida de cada
-      visita (ver abajo).
 - [ ] Elegir hosting del receptor y dejarlo corriendo 24/7.
+- [ ] Cargar los trackers reales (su IMEI) en la tabla `trackers`.
 
-## ⚠️ La pieza que todavía falta
+## Cómo se usa, de punta a punta
 
-Hoy **nada crea las visitas**. El receptor busca la visita con
-`estado = 'adentro'` de cada tracker, y el dashboard muestra esas visitas —
-pero alguien tiene que darlas de alta cuando el carro entra.
-
-Falta una **pantalla para el guardia** donde, al llegar una visita, anote la
-placa, el visitante y la casa destino, elija qué tracker le puso, y al salir
-marque la salida. Es la siguiente pieza natural del sistema.
+1. **Llega una visita** → el guardia abre `garita.html`, anota placa, visitante
+   y casa, elige un tracker de la lista y registra el ingreso.
+2. **Le coloca el tracker** al carro (imán, discreto).
+3. **El tracker reporta** su posición al receptor, que la guarda en Supabase.
+4. **Guardias y junta ven el puntito** moverse en `index.html`.
+5. **Sale la visita** → el guardia marca la salida y retira el tracker, que
+   queda libre para el próximo carro.
